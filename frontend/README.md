@@ -1,6 +1,6 @@
 # FrontendGen
 
-因为做编译器前端是一个繁琐枯燥的过程，我们的初衷是想让实现dsl更加容易，让写前端的程序员更加轻松，基于这个想法，FrontendGen诞生了，通过写语法生成式，以及少量的标记，可以生成ast visitor 和 Dialect的一部分映射，不过目前FrontendGen能做的事情其实还很有限,所以FrontendGen还只是一个demo。
+做编译器前端是一个繁琐枯燥的过程，我们的初衷是想让实现dsl更加容易，让写前端的程序员更加轻松，基于这个想法，FrontendGen诞生了，通过写语法生成式，以及少量的标记，可以生成ast visitor 和 Dialect的一部分映射，不过目前FrontendGen能做的事情其实还很有限,FrontendGen还只是一个demo。
 
 ## 使用教程
 
@@ -103,9 +103,9 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
     ;
   ```
 
-  我们用上面那的代码代码作为输入文件。**rule** 用来说明 expression是非终结符，后面可以写多条生成式。在这里包括了**expression 'mul' expression**
+  我们用上面那的代码代码作为输入文件。rule 关键字用来说明expression是非终结符，后面可以有多条生成式。在这里有expression 'mul' expression
 
-  **expression Add expression**。这里定义了一个mul的终结符，终结符的定义的方法是把单词用单引号引起来。
+  expression Add expression。这里定义了一个mul的终结符，终结符的定义的方法是把标识符用单引号引起来。
 
   如果想要生成g4文件，可以输入以下的参数。
 
@@ -113,9 +113,9 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
   ./buddy-frontendgen -f test.fegen -emit=antlr -g Toy
   ```
 
-  **-f** 参数用来指定是哪个文件。
+  **-f** 参数用来指定输入文件。
 
-  **-emit** 用来指定要生成的是什么类型的文件。
+  **-emit** 用来指定生成文件的类型。
 
   **-g** 用来指定文法的名称，也用来指定生成文件的名称。
 
@@ -132,11 +132,11 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
     ;
   ```
 
-  输入上面的命令会得到上面的文件，你能够看到**Mul**, 这里**Mul**是我们刚刚定义的终结符，**grammar Toy**是文法的名称，后面包含了一系列FrontendGen中内置的终结符。
+  输入上面的命令会得到Toy.g4文件，你能够看到Mul, 这里Mul是我们刚刚定义的终结符，grammar Toy是文法的名称，文件后面还包含了一系列FrontendGen中内置的终结符，我没有列出来。
 
  * -emit=ast
 
-   如果生成的文件错误，你可以通过使用**-emit=ast**进行调试。用上面的输入文件作为一个例子。
+   如果生成的文件内容有错误，你可以通过使用-emit=ast进行调试，用上面的输入文件作为一个例子。
 
    ```bash
    ./buddy-frontendgen -f test.fegen -emit=ast
@@ -152,7 +152,7 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
        "expression"(rule) "Add"(terminator) "expression"(rule) 
    ```
 
-   **rule name** 用来说明这是哪一条规则，而下面的的**generator**是这条规则下面的生成式，**(rule)** 用来说明**"expression"**是非终结符，而**(terminator)**说明**Mul** 和 **Add**是终结符。我们可以通过生成的ast进程调试，查看代码是否出现问题。
+   rule name 用来说明这是哪一条规则，而下面的的generator是这条规则下面的生成式，(rule) 用来说明expression是非终结符，而terminator说明Mul 和Add是终结符。
 
 * 正则表达式
 
@@ -165,7 +165,7 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
     ;
   ```
 
-  查看输出的文件
+  输入下面的命令得到Toy.g4
 
   ```bash
   ./buddy-frontendgen -f test.fegen -emit=antlr -g Toy
@@ -198,7 +198,7 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
       "expression"(rule) "Add"(terminator) "?"(bpExpression) "expression"(rule) 
   ```
 
-  **bpExpression**用来说明**"+"**和**"?"**是正则表达式。
+  bpExpression用来说明+和?是正则表达式。
 
 ### 生成MLIRvisitor文件
 
@@ -219,7 +219,7 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
   ./buddy-frontendgen -f test.fegen -emit=visitor -g Toy
   ```
 
-  **-emit=visitor**用来生成antlr的visitor文件，输入上面的命令，我们会得到一个**MLIRToyVisitor.h**的文件，下面是这个文件的内容。在这里，我们帮助用户定义了**MLIRxxxVisitor**这样的一个类，**xxx**和生成的文件的名称与指定的文法的名称有关，因为我们指定了**-g Toy**，**Toy**是文法的名称。
+  -emit=visitor用来生成visitor文件，输入上面的命令，我们会得到一个MLIRToyVisitor.h的文件，下面是这个文件的内容。在这里，我们帮助用户定义了MLIRxxxVisitor类，xxx和生成的文件的名称与指定的文法的名称有关，因为我们指定了-g Toy，Toy是文法的名称。
 
   ```c++
   #include "mlir/IR/Builders.h"
@@ -251,11 +251,11 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
   };
   ```
 
-  在生成的类里面，我们帮助用户生成了一些比较实用的头文件，还有一些方法，帮助用户自动重载了虚函数，重载的虚函数有哪些是由**test.fegen**中的**rule**指示的。yue hao
+  在生成的类里面，我们帮助用户生成了一些比较实用的头文件，还有一些方法，帮助用户自动继承了虚函数，继承的虚函数有哪些是由test.fegen中的rule指示的，也就是说每一条规则都会重载一个虚函数。
 
-* 在visitor文件生成builder.create函数
+* 在visitor文件生成构造Op的函数
 
-  我们为用户提供了自动生成builder.create函数的功能，我们用下面的代码作为例子，存放在test.fegen文件中。
+  我们为用户提供了自动构造Op的函数的功能，我们用下面的代码作为例子,写入test.fegen文件中。
 
   ```c
   dialect Toy_Dialect
@@ -287,7 +287,7 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
     ;
   ```
 
-  首先我们定义了一个**Toy_Dialect**,**name**是这个**dialect**的名称，**cppNamespace**用来指定**Toy_Dialect**在c++中的命名空间，下面的**Op**默认也会在这个命名空间中。然后用op 关键字定义了**FuncOp**，里面的**arguments**和**builders**全部都是能够用来生成**FuncOp**的方法。随后在**prototype**规则中添加了一行代码，如果想用自动生成**Op**，必须要用**{}**把下面的代码包起来才行。
+  首先我们定义了一个Toy_Dialect,name是这个dialect的名称，cppNamespace用来指定Toy_Dialect在c++中的命名空间，下面的Op默认也会在这个命名空间中。然后用op关键字定义了FuncOp，里面的arguments和builders全部都是能够用来生成FuncOp的描述。随后在prototype规则中添加了一行代码，如果想自动生成Op，必须要用{}把下面的代码包起来。
 
   ```c
   builder = FuncOp_0
@@ -319,7 +319,7 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
   };
   ```
 
-  **mlirvisitor.h**文件中多于的部分我没有再列出来，我们可以看到在**visitPrototype**中生成了生成**FuncOp**的函数，值得注意的一点是,**FuncOp_0**在这里的意思是使用**arguments**的那条属性生成的构造**Op**的方法。接下来我们会使用builders中描述的方法来生成构造**Op**的方法，我们进行如下改动，我们同时使用了**arguments**和**builders**属性中的描述来生成构造**FuncOp**的方法。
+  mlirvisitor.h文件中多于的部分我没有再列出来，我们可以看到在visitPrototype函数中生成了构造FuncOp的函数，值得注意的一点是,FuncOp_0在这里的意思是使用arguments的那条描述生成的构造Op的函数。接下来我们会使用builders中描述的方法来生成构造Op的方法，我们进行如下改动，同时使用了arguments和builders属性中的描述来生成构造FuncOp的函数。
 
   ```c
   rule prototype
@@ -358,12 +358,12 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
   };
   ```
 
-  可以看到，visitorPrototype函数中又多了一个生成**FuncOp**的方法。关于**FuncOp_index**中**index**的定义，**index用来指示**用哪一条描述来生成**Func_Op**,如果index为**0**说明使用**arguments**生成构造FuncOp,如果index大于**0**,就说明应该用**builders**中的描述，其中**builders**中也可以**有多条描述生成**Func_Op的方法，举个例子，如果index等于1,说明用builders中的第一条描述，如果index等于2,就说明用builders中的第二条描述。
+  可以看到，visitorPrototype函数中又多了一个构造FuncOp的函数。关于FuncOp_index中index的意义，index用来指示用哪一条描述来生成FuncOp,如果index为0说明使用arguments的描述生成构造FuncOp的函数,如果index大于0,就说明应该用builders中的描述，其中builders中也可以有多条描述生成FuncOp的方法，举个例子，如果index等于1,说明用builders中的第一条描述，如果index等于2,就说明用builders中的第二条描述。
   
   关于生成mlirvisitor的教程其实到这里就结束了，下面进行一点小小的补充。
   
-  你可以使用**-emit=all**同时生成g4文件和mlirvisitor文件，你也可以使用**-h**或**-help**参数查看一些信息。
+  你可以使用-emit=all同时生成g4文件和mlirvisitor文件，你也可以使用-h或-help参数查看一些信息。
 
 ## 最后
 
-FrontendGen最开始只是一个想法，目前还只能作为一个demo，能做的事还是很有限，如果在使用的过程中有好的想法，欢迎联系我们，如果你发现了bug，欢迎给我们提交issue，希望FrontendGen越来约好。
+FrontendGen最开始只是一个想法，目前还只能作为一个demo，能做的事还是很有限，如果在使用的过程中有好的想法，欢迎联系我们，如果你发现了bug，欢迎给我们提交issue，最后希望FrontendGen越来约好。
