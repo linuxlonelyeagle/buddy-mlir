@@ -107,7 +107,7 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
 
   expression Add expression。这里定义了一个mul的终结符，终结符的定义的方法是把标识符用单引号引起来。
 
-  如果想要生成g4文件，可以输入以下的参数。
+  如果想要生成g4文件，可以输入以下的命令。
 
   ```bash
   ./buddy-frontendgen -f test.fegen -emit=antlr -g Toy
@@ -152,7 +152,7 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
        "expression"(rule) "Add"(terminator) "expression"(rule) 
    ```
 
-   rule name 用来说明这是哪一条规则，而下面的的generator是这条规则下面的生成式，(rule) 用来说明expression是非终结符，而terminator说明Mul 和Add是终结符。
+   rule name 用来说明这是哪一条规则，而下面的的generator是这条规则下面的生成式，rule用来说明expression是非终结符，而terminator说明Mul 和Add是终结符。
 
 * 正则表达式
 
@@ -165,7 +165,7 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
     ;
   ```
 
-  输入下面的命令得到Toy.g4
+  输入下面的命令
 
   ```bash
   ./buddy-frontendgen -f test.fegen -emit=antlr -g Toy
@@ -251,7 +251,7 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
   };
   ```
 
-  在生成的类里面，我们帮助用户生成了一些比较实用的头文件，还有一些方法，帮助用户自动继承了虚函数，继承的虚函数有哪些是由test.fegen中的rule指示的，也就是说每一条规则都会重载一个虚函数。
+  在生成的类里面，我们帮助用户生成了一些比较实用的头文件，还有一些方法，帮助用户自动写出来有那些虚函数，用户可以在里面写具体的实现，虚函数有哪些是由test.fegen中的rule指示的，也就是说每一条规则都会生成一个虚函数。
 
 * 在visitor文件生成构造Op的函数
 
@@ -319,7 +319,7 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
   };
   ```
 
-  mlirvisitor.h文件中多于的部分我没有再列出来，我们可以看到在visitPrototype函数中生成了构造FuncOp的函数，值得注意的一点是,FuncOp_0在这里的意思是使用arguments的那条描述生成的构造Op的函数。接下来我们会使用builders中描述的方法来生成构造Op的方法，我们进行如下改动，同时使用了arguments和builders属性中的描述来生成构造FuncOp的函数。
+  mlirvisitor.h文件中多余的部分我没有再列出来，我们可以看到在visitPrototype函数中生成了构造FuncOp的函数，值得注意的一点是,FuncOp_0在这里的意思是使用arguments的那条描述生成的构造Op的函数。接下来我们会使用builders中描述的方法来生成构造Op的函数，我们进行如下改动，同时使用了arguments和builders属性中的描述来生成构造FuncOp的函数。
 
   ```c
   rule prototype
@@ -358,12 +358,12 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
   };
   ```
 
-  可以看到，visitorPrototype函数中又多了一个构造FuncOp的函数。关于FuncOp_index中index的意义，index用来指示用哪一条描述来生成FuncOp,如果index为0说明使用arguments的描述生成构造FuncOp的函数,如果index大于0,就说明应该用builders中的描述，其中builders中也可以有多条描述生成FuncOp的方法，举个例子，如果index等于1,说明用builders中的第一条描述，如果index等于2,就说明用builders中的第二条描述。
+  可以看到，visitorPrototype函数中又多了一个构造FuncOp的函数。关于FuncOp_index中index的意义，index用来指示用哪一条描述来生成FuncOp,如果index为0说明使用arguments的描述生成构造FuncOp的函数,如果index大于0,就说明应该用builders中的描述，其中builders中也可以有多条描述生成FuncOp，举个例子，如果index等于1,说明用builders中的第一条描述，如果index等于2,就说明用builders中的第二条描述。
   
   关于生成mlirvisitor的教程其实到这里就结束了，下面进行一点小小的补充。
   
-  你可以使用-emit=all同时生成g4文件和mlirvisitor文件，你也可以使用-h或-help参数查看一些信息。
+  你可以使用-emit=all同时生成g4文件和mlirvisitor文件，你也可以使用-h或--help参数查看一些信息。
 
 ## 最后
 
-FrontendGen最开始只是一个想法，目前还只能作为一个demo，能做的事还是很有限，如果在使用的过程中有好的想法，欢迎联系我们，如果你发现了bug，欢迎给我们提交issue，最后希望FrontendGen越来约好。
+FrontendGen最开始只是一个想法，目前还只能作为一个demo，能做的事还是很有限，如果在使用的过程中你有好的想法，欢迎联系我们，如果你发现了bug，欢迎给我们提交issue，最后希望FrontendGen越来越好。
