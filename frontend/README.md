@@ -1,6 +1,6 @@
 # FrontendGen
 
-因为做编译器前端是一个繁琐枯燥的过程，所以我们想让写前端的人更加轻松，基于这个想法，FrontendGen诞生了，通过写语法生成式，以及少量的标记，可以生成ast visitor 和 Dialect的一部分映射，不过目前FrontendGen能做的事情其实还很有限,所以FrontendGen还只是一个demo。
+因为做编译器前端是一个繁琐枯燥的过程，我们的初衷是想让实现dsl更加容易，让写前端的程序员更加轻松，基于这个想法，FrontendGen诞生了，通过写语法生成式，以及少量的标记，可以生成ast visitor 和 Dialect的一部分映射，不过目前FrontendGen能做的事情其实还很有限,所以FrontendGen还只是一个demo。
 
 ## 使用教程
 
@@ -200,4 +200,170 @@ FrontendGen可以生成g4文件，g4文件再交给antlr进行处理，也就是
 
   **bpExpression**用来说明**"+"**和**"?"**是正则表达式。
 
+### 生成MLIRvisitor文件
+
+* 生成简单的visitor
+
+  以上面的代码作为例子
+
+  ```c
+  rule expression
+    : expression 'mul' expression
+    : expression Add expression
+    ;
+  ```
+
+  输入下面的命令
+
+  ```bash
+  ./buddy-frontendgen -f test.fegen -emit=visitor -g Toy
+  ```
+
+  **-emit=visitor**用来生成antlr的visitor文件，输入上面的命令，我们会得到一个**MLIRToyVisitor.h**的文件，下面是这个文件的内容。在这里，我们帮助用户定义了**MLIRxxxVisitor**这样的一个类，**xxx**和生成的文件的名称与指定的文法的名称有关，因为我们指定了**-g Toy**，**Toy**是文法的名称。
+
+  ```c++
+  #include "mlir/IR/Builders.h"
+  #include "mlir/IR/BuiltinOps.h"
+  #include "mlir/IR/BuiltinTypes.h"
+  #include "mlir/IR/MLIRContext.h"
+  #include "mlir/IR/Verifier.h"
+  #include "llvm/ADT/STLExtras.h"
+  #include "llvm/ADT/ScopedHashTable.h"
+  #include "llvm/ADT/StringRef.h"
+  #include "llvm/Support/raw_ostream.h"
   
+  class MLIRToyVisitor : public ToyBaseVisitor {
+  mlir::ModuleOp theModule;
+  mlir::OpBuilder builder;
+  std::string fileName;
+  
+  public:
+  MLIRToyVisitor(std::string filename, mlir::MLIRContext &context)
+  : builder(&context), fileName(filename) {
+   theModule = mlir::ModuleOp::create(builder.getUnknownLoc());
+  }
+  
+  mlir::ModuleOp getModule() { return theModule; }
+  
+  virtual std::any visitExpression(ToyParser::ExpressionContext *ctx) {
+    return visitChildren(ctx);
+  }
+  };
+  ```
+
+  在生成的类里面，我们帮助用户生成了一些比较实用的头文件，还有一些方法，帮助用户自动重载了虚函数，重载的虚函数有哪些是由**test.fegen**中的**rule**指示的。yue hao
+
+* 在visitor文件生成builder.create函数
+
+  我们为用户提供了自动生成builder.create函数的功能，我们用下面的代码作为例子，存放在test.fegen文件中。
+
+  ```c
+  dialect Toy_Dialect
+    : name = "toy"
+    : cppNamespace = "mlir::toy"
+    ;
+  
+  
+  op FuncOp
+    : arguments = (ins
+      SymbolNameAttr:$sym_name,
+      TypeAttrOf<FunctionType>:$function_type
+    )
+    : builders = [ OpBuilder<(ins
+      "StringRef":$name, "FunctionType":$type,
+      CArg<"ArrayRef<NamedAttribute>", "{}">:$attrs)>
+    ]
+    ;
+  
+  rule prototype
+    : Def Identifier ParentheseOpen declList ? ParentheseClose {
+      builder = FuncOp_0
+    } 
+    ;
+  
+  rule declList
+    : Identifier
+    : Identifier Comma declList
+    ;
+  ```
+
+  首先我们定义了一个**Toy_Dialect**,**name**是这个**dialect**的名称，**cppNamespace**用来指定**Toy_Dialect**在c++中的命名空间，下面的**Op**默认也会在这个命名空间中。然后用op 关键字定义了**FuncOp**，里面的**arguments**和**builders**全部都是能够用来生成**FuncOp**的方法。随后在**prototype**规则中添加了一行代码，如果想用自动生成**Op**，必须要用**{}**把下面的代码包起来才行。
+
+  ```c
+  builder = FuncOp_0
+  ```
+
+  输入下面的命令
+
+  ```bash
+  ./buddy-frontendgen -f test.fegen -emit=visitor -g Toy
+  ```
+
+  ```c++
+  
+  virtual std::any visitPrototype(ToyParser::PrototypeContext *ctx) {
+    {
+    llvm::StringRef sym_name;
+    mlir::FunctionType function_type;
+    mlir::Location location;
+    builder.create<mlir::toy::FuncOp>(location, sym_name, function_type);
+    }
+  
+    return visitChildren(ctx);
+  }
+  
+  virtual std::any visitDeclList(ToyParser::DeclListContext *ctx) {
+    return visitChildren(ctx);
+  }
+  
+  };
+  ```
+
+  **mlirvisitor.h**文件中多于的部分我没有再列出来，我们可以看到在**visitPrototype**中生成了生成**FuncOp**的函数，值得注意的一点是,**FuncOp_0**在这里的意思是使用**arguments**的那条属性生成的构造**Op**的方法。接下来我们会使用builders中描述的方法来生成构造**Op**的方法，我们进行如下改动，我们同时使用了**arguments**和**builders**属性中的描述来生成构造**FuncOp**的方法。
+
+  ```c
+  rule prototype
+    : Def Identifier ParentheseOpen declList ? ParentheseClose {
+      builder = FuncOp_0,FuncOp_1
+    } 
+    ;
+  ```
+
+  我们会得到下面的c++代码
+
+  ```c++
+  virtual std::any visitPrototype(ToyParser::PrototypeContext *ctx) {
+    {
+    llvm::StringRef sym_name;
+    mlir::FunctionType function_type;
+    mlir::Location location;
+    builder.create<mlir::toy::FuncOp>(location, sym_name, function_type);
+    }
+  
+    {
+    llvm::StringRef name;
+    llvm::FunctionType type;
+    llvm::ArrayRef<NamedAttribute> attrs;
+    mlir::Location location;
+    builder.create<mlir::toy::FuncOp>(location, name, type, attrs);
+    }
+  
+    return visitChildren(ctx);
+  }
+  
+  virtual std::any visitDeclList(ToyParser::DeclListContext *ctx) {
+    return visitChildren(ctx);
+  }
+  
+  };
+  ```
+
+  可以看到，visitorPrototype函数中又多了一个生成**FuncOp**的方法。关于**FuncOp_index**中**index**的定义，**index用来指示**用哪一条描述来生成**Func_Op**,如果index为**0**说明使用**arguments**生成构造FuncOp,如果index大于**0**,就说明应该用**builders**中的描述，其中**builders**中也可以**有多条描述生成**Func_Op的方法，举个例子，如果index等于1,说明用builders中的第一条描述，如果index等于2,就说明用builders中的第二条描述。
+  
+  关于生成mlirvisitor的教程其实到这里就结束了，下面进行一点小小的补充。
+  
+  你可以使用**-emit=all**同时生成g4文件和mlirvisitor文件，你也可以使用**-h**或**-help**参数查看一些信息。
+
+## 最后
+
+FrontendGen最开始只是一个想法，目前还只能作为一个demo，能做的事还是很有限，如果在使用的过程中有好的想法，欢迎联系我们，如果你发现了bug，欢迎给我们提交issue，希望FrontendGen越来约好。
